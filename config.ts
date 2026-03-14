@@ -1,7 +1,9 @@
 import { parse } from "@std/toml";
+import type { Brand } from "@askua/core/brand";
 import { stringify } from "@std/toml";
+import type { WasmPathName, WasmReferenceName } from "./pull.ts";
 import { isSome, none, type Option, some } from "@askua/core/option";
-import { err, ok, type Result } from "@askua/core/result";
+import { err, ok, type Result, type ResultInstance } from "@askua/core/result";
 
 export interface WasiConfig {
   wasi?: string[];
@@ -11,8 +13,8 @@ export interface WasiConfig {
 }
 
 export interface PackageConfig {
-  reference?: string;
-  path?: string;
+  reference?: WasmReferenceName;
+  path?: WasmPathName;
   run?: WasiConfig;
   serve?: WasiConfig;
 }
@@ -23,7 +25,7 @@ export interface Config {
 
 const CONFIG_FILE_NAME = "wasm-pkg-runner.toml";
 
-export function globalConfigPath(): Result<string, Error> {
+export function globalConfigPath(): ResultInstance<string, Error> {
   const home = Deno.env.get("HOME");
   if (!home) {
     return err(new Error("HOME environment variable not set"));
@@ -95,77 +97,76 @@ function mergeConfigs(base: Config, override: Config): Config {
   return { packages };
 }
 
-export async function loadConfig(): Promise<Result<Config, Error>> {
-  const pathResult = globalConfigPath();
-  if (!pathResult.ok) {
-    return pathResult;
-  }
+export function loadConfig(): Promise<ResultInstance<Config, Error>> {
+  return globalConfigPath()
+    .lazy()
+    .and(async (globalPath) => {
+      const candidates = await configCandidates(globalPath);
+      let config: Config = { packages: {} };
 
-  const candidates = await configCandidates(pathResult.value);
-  let config: Config = { packages: {} };
+      for (const path of candidates) {
+        const parsed = await parseConfigFile(path);
+        if (isSome(parsed)) {
+          config = mergeConfigs(config, parsed.value);
+        }
+      }
 
-  for (const path of candidates) {
-    const parsed = await parseConfigFile(path);
-    if (isSome(parsed)) {
-      config = mergeConfigs(config, parsed.value);
-    }
-  }
-
-  return ok(config);
+      return ok(config);
+    })
+    .eval();
 }
 
-export async function showConfig(): Promise<Result<void, Error>> {
-  const pathResult = globalConfigPath();
-  if (!pathResult.ok) {
-    return pathResult;
-  }
+export function showConfig(): Promise<Result<void, Error>> {
+  return globalConfigPath()
+    .lazy()
+    .and(async (globalPath) => {
+      const candidates = await configCandidates(globalPath);
+      const loadedFiles: string[] = [];
 
-  const candidates = await configCandidates(pathResult.value);
-  const loadedFiles: string[] = [];
+      let config: Config = { packages: {} };
+      for (const path of candidates) {
+        const parsed = await parseConfigFile(path);
+        if (isSome(parsed)) {
+          config = mergeConfigs(config, parsed.value);
+          loadedFiles.push(path);
+        }
+      }
 
-  let config: Config = { packages: {} };
-  for (const path of candidates) {
-    const parsed = await parseConfigFile(path);
-    if (isSome(parsed)) {
-      config = mergeConfigs(config, parsed.value);
-      loadedFiles.push(path);
-    }
-  }
+      if (loadedFiles.length === 0) {
+        console.log("No config files found.");
+        console.log(`\nConfig search paths:`);
+        for (const path of candidates) {
+          console.log(`  - ${path}`);
+        }
+        return ok(undefined);
+      }
 
-  if (loadedFiles.length === 0) {
-    console.log("No config files found.");
-    console.log(`\nConfig search paths:`);
-    for (const path of candidates) {
-      console.log(`  - ${path}`);
-    }
-    return ok(undefined);
-  }
-
-  console.log("Loaded config files (in priority order):");
-  for (const file of loadedFiles) {
-    console.log(`  - ${file}`);
-  }
-  console.log();
-  console.log(stringify(config as unknown as Record<string, unknown>).trim());
-  return ok(undefined);
+      console.log("Loaded config files (in priority order):");
+      for (const file of loadedFiles) {
+        console.log(`  - ${file}`);
+      }
+      console.log();
+      console.log(
+        stringify(config as unknown as Record<string, unknown>).trim(),
+      );
+      return ok(undefined);
+    })
+    .eval();
 }
 
-export async function editConfig(): Promise<Result<number, Error>> {
-  const pathResult = globalConfigPath();
-  if (!pathResult.ok) {
-    return pathResult;
-  }
+export function editConfig(): Promise<Result<number, Error>> {
+  return globalConfigPath()
+    .lazy()
+    .and(async (path) => {
+      const dir = path.substring(0, path.lastIndexOf("/"));
 
-  const path = pathResult.value;
-  const dir = path.substring(0, path.lastIndexOf("/"));
+      await Deno.mkdir(dir, { recursive: true });
 
-  await Deno.mkdir(dir, { recursive: true });
-
-  // Create file if it doesn't exist
-  try {
-    await Deno.stat(path);
-  } catch {
-    const template = `# wasm-pkg-runner configuration
+      // Create file if it doesn't exist
+      try {
+        await Deno.stat(path);
+      } catch {
+        const template = `# wasm-pkg-runner configuration
 # See: https://github.com/a-skua/wasm-pkg-runner
 
 # OCI registry reference
@@ -184,24 +185,28 @@ export async function editConfig(): Promise<Result<number, Error>> {
 # [packages.<name>.serve]
 # wasi = ["cli", "inherit-network"]
 `;
-    await Deno.writeTextFile(path, template);
-  }
+        await Deno.writeTextFile(path, template);
+      }
 
-  const editor = Deno.env.get("EDITOR") ?? "vi";
-  const cmd = new Deno.Command(editor, {
-    args: [path],
-    stdout: "inherit",
-    stderr: "inherit",
-    stdin: "inherit",
-  });
+      const editor = Deno.env.get("EDITOR") ?? "vi";
+      const cmd = new Deno.Command(editor, {
+        args: [path],
+        stdout: "inherit",
+        stderr: "inherit",
+        stdin: "inherit",
+      });
 
-  const { code } = await cmd.output();
-  return ok(code);
+      const { code } = await cmd.output();
+      return ok(code);
+    })
+    .eval();
 }
+
+export type WasmPackageName = Brand<string, "WasmPackageName">;
 
 export function resolvePackage(
   config: Config,
-  name: string,
+  name: WasmPackageName | WasmReferenceName,
 ): { pkg: PackageConfig } {
   // name can be "auth:0.2.0" or full "ghcr.io/a-skua/gcloud/auth:0.2.0"
   const pkg = config.packages[name] ?? config.packages[name.split(":")[0]];
@@ -218,6 +223,6 @@ export function resolvePackage(
 
   // Not in config — treat name as a full reference
   return {
-    pkg: { reference: name },
+    pkg: { reference: name as WasmReferenceName },
   };
 }

@@ -1,10 +1,11 @@
-import { type PackageConfig, type WasiConfig } from "./config.ts";
-import { err, ok, type Result } from "@askua/core/result";
-import { pull, wasmPath } from "./pull.ts";
+import type { PackageConfig, WasiConfig } from "./config.ts";
+import type { Brand } from "@askua/core/brand";
+import { err, ok, Result } from "@askua/core/result";
+import { pull, wasmPath, type WasmPathName } from "./pull.ts";
 
 async function resolveWasmPath(
   pkg: PackageConfig,
-): Promise<Result<string, Error>> {
+): Promise<Result<WasmPathName, Error>> {
   if (pkg.path) {
     return ok(pkg.path);
   }
@@ -58,26 +59,26 @@ function buildArgs(
   return args;
 }
 
-export async function exec(
+export type ExitCode = Brand<number, "ExitCode">;
+
+export function exec(
   subcommand: string,
   pkg: PackageConfig,
   config: WasiConfig | undefined,
   extraArgs: string[],
-): Promise<Result<number, Error>> {
-  const wasmFileResult = await resolveWasmPath(pkg);
-  if (!wasmFileResult.ok) {
-    return wasmFileResult;
-  }
+): Promise<Result<ExitCode, Error>> {
+  return Result.lazy(resolveWasmPath(pkg))
+    .map((wasmFile) => buildArgs(subcommand, wasmFile, config, extraArgs))
+    .and(async (args) => {
+      const cmd = new Deno.Command("wasmtime", {
+        args,
+        stdout: "inherit",
+        stderr: "inherit",
+        stdin: "inherit",
+      });
 
-  const args = buildArgs(subcommand, wasmFileResult.value, config, extraArgs);
-
-  const cmd = new Deno.Command("wasmtime", {
-    args,
-    stdout: "inherit",
-    stderr: "inherit",
-    stdin: "inherit",
-  });
-
-  const { code } = await cmd.output();
-  return ok(code);
+      const { code } = await cmd.output();
+      return ok(code as ExitCode);
+    })
+    .eval();
 }
