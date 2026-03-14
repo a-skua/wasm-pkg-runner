@@ -88,22 +88,42 @@ If no config file is found, `wa` runs without WASI options.
 ### Example (`wasm-pkg-runner.toml`)
 
 ```toml
+# OCI registry reference
 [packages.example]
 reference = "ghcr.io/a-skua/example-cli:2026.3.14"
 
 [packages.example.run]
 wasi = ["http", "inherit-env"]
 dirs = ["~/.config/gcloud"]
+env = ["GOOGLE_APPLICATION_CREDENTIALS"]
 
 [packages.example.serve]
 wasi = ["cli", "inherit-network"]
+
+# Local wasm file path
+[packages.my-app]
+path = "~/projects/my-app/target/wasm32-wasip2/release/my_app.wasm"
+
+[packages.my-app.run]
+wasi = ["http"]
+env = ["API_KEY"]
 ```
 
 With this config, `wa run example` executes:
 
 ```bash
-wasmtime run -S http -S inherit-env --dir ~/.config/gcloud ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/example-cli/2026.3.14.wasm
+wasmtime run -S http -S inherit-env --dir ~/.config/gcloud --env GOOGLE_APPLICATION_CREDENTIALS ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/example-cli/2026.3.14.wasm
 ```
+
+### Config fields
+
+| Field | Description |
+|-------|-------------|
+| `reference` | OCI registry reference (e.g. `ghcr.io/a-skua/example:0.1.0`) |
+| `path` | Local wasm file path (alternative to `reference`) |
+| `run.wasi` / `serve.wasi` | WASI options passed to `-S` |
+| `run.dirs` / `serve.dirs` | Directories passed to `--dir` |
+| `run.env` / `serve.env` | Environment variable keys passed to `--env` |
 
 ## License
 

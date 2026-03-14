@@ -45,8 +45,8 @@ switch (command) {
       Deno.exit(1);
     }
     const config = await loadConfig();
-    const { reference, pkg } = resolvePackage(config, name);
-    await run(reference, pkg, args.slice(1));
+    const { pkg } = resolvePackage(config, name);
+    await run(pkg, args.slice(1));
     break;
   }
 
@@ -57,8 +57,8 @@ switch (command) {
       Deno.exit(1);
     }
     const config = await loadConfig();
-    const { reference, pkg } = resolvePackage(config, name);
-    await serve(reference, pkg, args.slice(1));
+    const { pkg } = resolvePackage(config, name);
+    await serve(pkg, args.slice(1));
     break;
   }
 

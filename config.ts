@@ -4,11 +4,13 @@ import { stringify } from "@std/toml";
 export interface WasiConfig {
   wasi?: string[];
   dirs?: string[];
+  env?: string[];
   args?: string[];
 }
 
 export interface PackageConfig {
-  reference: string;
+  reference?: string;
+  path?: string;
   run?: WasiConfig;
   serve?: WasiConfig;
 }
@@ -147,12 +149,18 @@ export async function editConfig(): Promise<void> {
     const template = `# wasm-pkg-runner configuration
 # See: https://github.com/a-skua/wasm-pkg-runner
 
+# OCI registry reference
 # [packages.<name>]
 # reference = "ghcr.io/example/package:0.1.0"
+#
+# Local wasm file path
+# [packages.<name>]
+# path = "~/path/to/component.wasm"
 #
 # [packages.<name>.run]
 # wasi = ["http", "inherit-env"]
 # dirs = ["~/.config/gcloud"]
+# env = ["GOOGLE_APPLICATION_CREDENTIALS"]
 #
 # [packages.<name>.serve]
 # wasi = ["cli", "inherit-network"]
@@ -175,23 +183,22 @@ export async function editConfig(): Promise<void> {
 export function resolvePackage(
   config: Config,
   name: string,
-): { reference: string; pkg: PackageConfig } {
+): { pkg: PackageConfig } {
   // name can be "auth:0.2.0" or full "ghcr.io/a-skua/gcloud/auth:0.2.0"
   const pkg = config.packages[name] ?? config.packages[name.split(":")[0]];
   if (pkg) {
-    return { reference: pkg.reference, pkg };
+    return { pkg };
   }
 
   // Try matching by full reference
   for (const [, p] of Object.entries(config.packages)) {
     if (p.reference === name) {
-      return { reference: p.reference, pkg: p };
+      return { pkg: p };
     }
   }
 
   // Not in config — treat name as a full reference
   return {
-    reference: name,
     pkg: { reference: name },
   };
 }
