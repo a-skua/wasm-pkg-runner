@@ -1,20 +1,22 @@
 import { type PackageConfig, type WasiConfig } from "./config.ts";
+import { err, ok, type Result } from "@askua/core/result";
 import { pull, wasmPath } from "./pull.ts";
 
-async function resolveWasmPath(pkg: PackageConfig): Promise<string> {
+async function resolveWasmPath(
+  pkg: PackageConfig,
+): Promise<Result<string, Error>> {
   if (pkg.path) {
-    return pkg.path;
+    return ok(pkg.path);
   }
 
   if (!pkg.reference) {
-    console.error("Package must have either 'reference' or 'path'");
-    Deno.exit(1);
+    return err(new Error("Package must have either 'reference' or 'path'"));
   }
 
   const path = wasmPath(pkg.reference);
   try {
     await Deno.stat(path);
-    return path;
+    return ok(path);
   } catch {
     console.error(`${path} not found, pulling ${pkg.reference}...`);
     return await pull(pkg.reference);
@@ -61,9 +63,13 @@ export async function exec(
   pkg: PackageConfig,
   config: WasiConfig | undefined,
   extraArgs: string[],
-): Promise<never> {
-  const wasmFile = await resolveWasmPath(pkg);
-  const args = buildArgs(subcommand, wasmFile, config, extraArgs);
+): Promise<Result<number, Error>> {
+  const wasmFileResult = await resolveWasmPath(pkg);
+  if (!wasmFileResult.ok) {
+    return wasmFileResult;
+  }
+
+  const args = buildArgs(subcommand, wasmFileResult.value, config, extraArgs);
 
   const cmd = new Deno.Command("wasmtime", {
     args,
@@ -73,5 +79,5 @@ export async function exec(
   });
 
   const { code } = await cmd.output();
-  Deno.exit(code);
+  return ok(code);
 }

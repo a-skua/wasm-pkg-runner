@@ -1,11 +1,12 @@
 {
   "name": "@askua/wasm-pkg-runner",
-  "version": "2026.3.16+1",
+  "version": "2026.3.16+2",
   "exports": "./main.ts",
   "tasks": {
     "wa": "deno run -A main.ts"
   },
   "imports": {
+    "@askua/core": "jsr:@askua/core@^2.1.1",
     "@cliffy/command": "jsr:@cliffy/command@^1.0.0",
     "@std/toml": "jsr:@std/toml@^1.0.11"
   },

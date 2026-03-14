@@ -1,6 +1,7 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@askua/core@^2.1.1": "2.1.1",
     "jsr:@cliffy/command@1": "1.0.0",
     "jsr:@cliffy/flags@1.0.0": "1.0.0",
     "jsr:@cliffy/internal@1.0.0": "1.0.0",
@@ -13,6 +14,9 @@
     "jsr:@std/toml@^1.0.11": "1.0.11"
   },
   "jsr": {
+    "@askua/core@2.1.1": {
+      "integrity": "ff4d0a02194c549d8f3e8c8e78d07f2f374db6829d778bae7bebddd2213aebb4"
+    },
     "@cliffy/command@1.0.0": {
       "integrity": "c52a241ea68857fcdaff4f3173eb404f8017d7bc35553b6f533c592b89dde7d2",
       "dependencies": [
@@ -61,6 +65,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@askua/core@^2.1.1",
       "jsr:@cliffy/command@1",
       "jsr:@std/toml@^1.0.11"
     ]

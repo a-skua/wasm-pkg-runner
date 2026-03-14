@@ -1,5 +1,7 @@
 import { parse } from "@std/toml";
 import { stringify } from "@std/toml";
+import { isSome, none, type Option, some } from "@askua/core/option";
+import { err, ok, type Result } from "@askua/core/result";
 
 export interface WasiConfig {
   wasi?: string[];
@@ -21,20 +23,21 @@ export interface Config {
 
 const CONFIG_FILE_NAME = "wasm-pkg-runner.toml";
 
-export function globalConfigPath(): string {
+export function globalConfigPath(): Result<string, Error> {
   const home = Deno.env.get("HOME");
   if (!home) {
-    console.error("HOME environment variable not set");
-    Deno.exit(1);
+    return err(new Error("HOME environment variable not set"));
   }
-  return `${home}/.config/wasm-pkg-runner/config.toml`;
+  return ok(`${home}/.config/wasm-pkg-runner/config.toml`);
 }
 
-async function configCandidates(): Promise<string[]> {
+async function configCandidates(
+  globalPath: string,
+): Promise<string[]> {
   const candidates: string[] = [];
 
   // 3. $HOME/.config/wasm-pkg-runner/config.toml (lowest priority, loaded first)
-  candidates.push(globalConfigPath());
+  candidates.push(globalPath);
 
   // 2. git repository root
   try {
@@ -64,13 +67,13 @@ async function configCandidates(): Promise<string[]> {
   return candidates;
 }
 
-async function parseConfigFile(path: string): Promise<Config | null> {
+async function parseConfigFile(path: string): Promise<Option<Config>> {
   try {
     const text = await Deno.readTextFile(path);
     const raw = parse(text) as unknown as Config;
-    return { packages: raw.packages ?? {} };
+    return some({ packages: raw.packages ?? {} });
   } catch {
-    return null;
+    return none();
   }
 }
 
@@ -92,29 +95,39 @@ function mergeConfigs(base: Config, override: Config): Config {
   return { packages };
 }
 
-export async function loadConfig(): Promise<Config> {
-  const candidates = await configCandidates();
+export async function loadConfig(): Promise<Result<Config, Error>> {
+  const pathResult = globalConfigPath();
+  if (!pathResult.ok) {
+    return pathResult;
+  }
+
+  const candidates = await configCandidates(pathResult.value);
   let config: Config = { packages: {} };
 
   for (const path of candidates) {
     const parsed = await parseConfigFile(path);
-    if (parsed) {
-      config = mergeConfigs(config, parsed);
+    if (isSome(parsed)) {
+      config = mergeConfigs(config, parsed.value);
     }
   }
 
-  return config;
+  return ok(config);
 }
 
-export async function showConfig(): Promise<void> {
-  const candidates = await configCandidates();
+export async function showConfig(): Promise<Result<void, Error>> {
+  const pathResult = globalConfigPath();
+  if (!pathResult.ok) {
+    return pathResult;
+  }
+
+  const candidates = await configCandidates(pathResult.value);
   const loadedFiles: string[] = [];
 
   let config: Config = { packages: {} };
   for (const path of candidates) {
     const parsed = await parseConfigFile(path);
-    if (parsed) {
-      config = mergeConfigs(config, parsed);
+    if (isSome(parsed)) {
+      config = mergeConfigs(config, parsed.value);
       loadedFiles.push(path);
     }
   }
@@ -125,7 +138,7 @@ export async function showConfig(): Promise<void> {
     for (const path of candidates) {
       console.log(`  - ${path}`);
     }
-    return;
+    return ok(undefined);
   }
 
   console.log("Loaded config files (in priority order):");
@@ -134,10 +147,16 @@ export async function showConfig(): Promise<void> {
   }
   console.log();
   console.log(stringify(config as unknown as Record<string, unknown>).trim());
+  return ok(undefined);
 }
 
-export async function editConfig(): Promise<void> {
-  const path = globalConfigPath();
+export async function editConfig(): Promise<Result<number, Error>> {
+  const pathResult = globalConfigPath();
+  if (!pathResult.ok) {
+    return pathResult;
+  }
+
+  const path = pathResult.value;
   const dir = path.substring(0, path.lastIndexOf("/"));
 
   await Deno.mkdir(dir, { recursive: true });
@@ -177,7 +196,7 @@ export async function editConfig(): Promise<void> {
   });
 
   const { code } = await cmd.output();
-  Deno.exit(code);
+  return ok(code);
 }
 
 export function resolvePackage(

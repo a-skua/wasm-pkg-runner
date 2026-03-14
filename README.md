@@ -117,13 +117,13 @@ wasmtime run -S http -S inherit-env --dir /home/<username>/.config/gcloud --env 
 
 ### Config fields
 
-| Field | Description |
-|-------|-------------|
-| `reference` | OCI registry reference (e.g. `ghcr.io/a-skua/example:0.1.0`) |
-| `path` | Local wasm file path (alternative to `reference`) |
-| `run.wasi` / `serve.wasi` | WASI options passed to `-S` |
-| `run.dirs` / `serve.dirs` | Directories passed to `--dir` |
-| `run.env` / `serve.env` | Environment variable keys passed to `--env` |
+| Field                     | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `reference`               | OCI registry reference (e.g. `ghcr.io/a-skua/example:0.1.0`) |
+| `path`                    | Local wasm file path (alternative to `reference`)            |
+| `run.wasi` / `serve.wasi` | WASI options passed to `-S`                                  |
+| `run.dirs` / `serve.dirs` | Directories passed to `--dir`                                |
+| `run.env` / `serve.env`   | Environment variable keys passed to `--env`                  |
 
 ## License
 

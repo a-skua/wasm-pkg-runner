@@ -1,3 +1,5 @@
+import { err, ok, type Result } from "@askua/core/result";
+
 const WASM_PKG_DIR = `${Deno.env.get("HOME")}/.cache/wasm-pkg-runner`;
 
 export function wasmPath(reference: string): string {
@@ -6,7 +8,7 @@ export function wasmPath(reference: string): string {
   return `${WASM_PKG_DIR}/${path}.wasm`;
 }
 
-export async function pull(reference: string): Promise<string> {
+export async function pull(reference: string): Promise<Result<string, Error>> {
   const output = wasmPath(reference);
   const dir = output.substring(0, output.lastIndexOf("/"));
 
@@ -20,10 +22,9 @@ export async function pull(reference: string): Promise<string> {
 
   const { success } = await cmd.output();
   if (!success) {
-    console.error(`Failed to pull ${reference}`);
-    Deno.exit(1);
+    return err(new Error(`Failed to pull ${reference}`));
   }
 
   console.log(`Pulled ${reference} → ${output}`);
-  return output;
+  return ok(output);
 }
