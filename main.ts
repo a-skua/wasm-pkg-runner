@@ -7,6 +7,9 @@ import {
 import { pull } from "./pull.ts";
 import { run } from "./run.ts";
 import { serve } from "./serve.ts";
+import denoJson from "./deno.json" with { type: "json" };
+
+const VERSION = denoJson.version;
 
 const USAGE = `Usage: wa <command> [options]
 
@@ -17,6 +20,9 @@ Commands:
   config                    Show merged config
   config --edit             Edit global config
   help                      Show this help message
+
+Options:
+  --version                 Show version
 `;
 
 const [command, ...args] = Deno.args;
@@ -64,6 +70,10 @@ switch (command) {
     }
     break;
   }
+
+  case "--version":
+    console.log(`${denoJson.name} ${VERSION}`);
+    break;
 
   case "help":
   case undefined:

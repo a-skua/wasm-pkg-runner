@@ -1,5 +1,5 @@
 {
-  "name": "@a-skua/wasm-pkg-runner",
+  "name": "@askua/wasm-pkg-runner",
   "version": "2026.3.16",
   "exports": "./main.ts",
   "tasks": {
