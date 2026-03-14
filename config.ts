@@ -33,7 +33,7 @@ export function globalConfigPath(): string {
 async function configCandidates(): Promise<string[]> {
   const candidates: string[] = [];
 
-  // 3. ~/.config/wasm-pkg-runner/config.toml (lowest priority, loaded first)
+  // 3. $HOME/.config/wasm-pkg-runner/config.toml (lowest priority, loaded first)
   candidates.push(globalConfigPath());
 
   // 2. git repository root
@@ -155,11 +155,11 @@ export async function editConfig(): Promise<void> {
 #
 # Local wasm file path
 # [packages.<name>]
-# path = "~/path/to/component.wasm"
+# path = "/home/<username>/path/to/component.wasm"
 #
 # [packages.<name>.run]
 # wasi = ["http", "inherit-env"]
-# dirs = ["~/.config/gcloud"]
+# dirs = ["/home/<username>/.config/gcloud"]
 # env = ["GOOGLE_APPLICATION_CREDENTIALS"]
 #
 # [packages.<name>.serve]

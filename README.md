@@ -36,7 +36,7 @@ deno install -g -A -n wa --config deno.json main.ts
 wa pull ghcr.io/a-skua/example-cli:2026.3.14
 ```
 
-Downloads the Wasm component to `~/.cache/wasm-pkg-runner/`.
+Downloads the Wasm component to `/home/<username>/.cache/wasm-pkg-runner/`.
 
 ### Run a package
 
@@ -72,14 +72,14 @@ Shows the merged configuration from all config files.
 wa config --edit
 ```
 
-Opens `~/.config/wasm-pkg-runner/config.toml` in `$EDITOR`.
+Opens `/home/<username>/.config/wasm-pkg-runner/config.toml` in `$EDITOR`.
 
 ## Configuration
 
 `wa` loads and merges config files in the following order (later files override
 earlier ones):
 
-1. `~/.config/wasm-pkg-runner/config.toml` (global)
+1. `/home/<username>/.config/wasm-pkg-runner/config.toml` (global)
 2. `<git root>/wasm-pkg-runner.toml` (repository)
 3. `./wasm-pkg-runner.toml` (current directory)
 
@@ -94,7 +94,7 @@ reference = "ghcr.io/a-skua/example-cli:2026.3.14"
 
 [packages.example.run]
 wasi = ["http", "inherit-env"]
-dirs = ["~/.config/gcloud"]
+dirs = ["/home/<username>/.config/gcloud"]
 env = ["GOOGLE_APPLICATION_CREDENTIALS"]
 
 [packages.example.serve]
@@ -102,7 +102,7 @@ wasi = ["cli", "inherit-network"]
 
 # Local wasm file path
 [packages.my-app]
-path = "~/projects/my-app/target/wasm32-wasip2/release/my_app.wasm"
+path = "/home/<username>/projects/my-app/target/wasm32-wasip2/release/my_app.wasm"
 
 [packages.my-app.run]
 wasi = ["http"]
@@ -112,7 +112,7 @@ env = ["API_KEY"]
 With this config, `wa run example` executes:
 
 ```bash
-wasmtime run -S http -S inherit-env --dir ~/.config/gcloud --env GOOGLE_APPLICATION_CREDENTIALS ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/example-cli/2026.3.14.wasm
+wasmtime run -S http -S inherit-env --dir /home/<username>/.config/gcloud --env GOOGLE_APPLICATION_CREDENTIALS /home/<username>/.cache/wasm-pkg-runner/ghcr.io/a-skua/example-cli/2026.3.14.wasm
 ```
 
 ### Config fields

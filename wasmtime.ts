@@ -3,8 +3,7 @@ import { pull, wasmPath } from "./pull.ts";
 
 async function resolveWasmPath(pkg: PackageConfig): Promise<string> {
   if (pkg.path) {
-    const expanded = pkg.path.replace(/^~/, Deno.env.get("HOME") ?? "~");
-    return expanded;
+    return pkg.path;
   }
 
   if (!pkg.reference) {
