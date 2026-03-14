@@ -163,13 +163,17 @@ if (import.meta.main) {
       Deno.exit(result.value);
     });
 
-  await new Command()
+  const main = new Command()
     .name(denoJson.name)
     .version(denoJson.version)
     .description("Wasm package runner")
+    .action(function () {
+      this.showHelp();
+    })
     .command("pull", pullCommand)
     .command("run", runCommand)
     .command("serve", serveCommand)
-    .command("config", configCommand)
-    .parse(Deno.args);
+    .command("config", configCommand);
+
+  await main.parse(Deno.args);
 }
