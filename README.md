@@ -17,7 +17,7 @@ components with preconfigured WASI options.
 From JSR:
 
 ```bash
-deno install -g -A -n wa jsr:@a-skua/wasm-pkg-runner
+deno install -g -A -n wa jsr:@askua/wasm-pkg-runner
 ```
 
 From local source:
