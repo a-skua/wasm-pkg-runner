@@ -6,6 +6,7 @@
     "wa": "deno run -A main.ts"
   },
   "imports": {
+    "@cliffy/command": "jsr:@cliffy/command@^1.0.0",
     "@std/toml": "jsr:@std/toml@^1.0.11"
   },
   "publish": {
