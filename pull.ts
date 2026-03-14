@@ -1,7 +1,7 @@
-const WASM_PKG_DIR = `${Deno.env.get("HOME")}/.local/wasm-pkg`;
+const WASM_PKG_DIR = `${Deno.env.get("HOME")}/.cache/wasm-pkg-runner`;
 
 export function wasmPath(reference: string): string {
-  // ghcr.io/a-skua/gcloud/auth:0.2.0 → ~/.local/wasm-pkg/ghcr.io/a-skua/gcloud/auth/0.2.0.wasm
+  // ghcr.io/a-skua/gcloud/auth:0.2.0 → ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/gcloud/auth/0.2.0.wasm
   const path = reference.replace(":", "/");
   return `${WASM_PKG_DIR}/${path}.wasm`;
 }

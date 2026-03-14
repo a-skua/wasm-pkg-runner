@@ -1,4 +1,9 @@
-import { editConfig, loadConfig, resolvePackage, showConfig } from "./config.ts";
+import {
+  editConfig,
+  loadConfig,
+  resolvePackage,
+  showConfig,
+} from "./config.ts";
 import { pull } from "./pull.ts";
 import { run } from "./run.ts";
 import { serve } from "./serve.ts";

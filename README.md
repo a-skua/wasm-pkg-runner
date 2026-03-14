@@ -2,7 +2,9 @@
 
 A CLI tool to pull and run WebAssembly components from OCI registries.
 
-Wraps [wkg](https://github.com/bytecodealliance/wasm-pkg-tools) and [wasmtime](https://wasmtime.dev/) to simplify pulling, running, and serving Wasm components with preconfigured WASI options.
+Wraps [wkg](https://github.com/bytecodealliance/wasm-pkg-tools) and
+[wasmtime](https://wasmtime.dev/) to simplify pulling, running, and serving Wasm
+components with preconfigured WASI options.
 
 ## Requirements
 
@@ -31,21 +33,21 @@ deno install -g -A -n wa --config deno.json main.ts
 ### Pull a package
 
 ```bash
-wa pull ghcr.io/a-skua/gcloud/auth:0.2.0
+wa pull ghcr.io/a-skua/example-cli:2026.3.14
 ```
 
-Downloads the Wasm component to `~/.local/wasm-pkg/`.
+Downloads the Wasm component to `~/.cache/wasm-pkg-runner/`.
 
 ### Run a package
 
 ```bash
-wa run auth:0.2.0
+wa run example:2026.3.14
 ```
 
 ### Serve a package
 
 ```bash
-wa serve auth:0.2.0
+wa serve example:0.2.0
 ```
 
 If the package is not found locally, it will be pulled automatically.
@@ -53,7 +55,7 @@ If the package is not found locally, it will be pulled automatically.
 Without a config file, packages can still be run using their full reference:
 
 ```bash
-wa run ghcr.io/a-skua/gcloud/auth:0.2.0
+wa run ghcr.io/a-skua/example-cli:2026.3.14
 ```
 
 ### Show config
@@ -74,7 +76,8 @@ Opens `~/.config/wasm-pkg-runner/config.toml` in `$EDITOR`.
 
 ## Configuration
 
-`wa` loads and merges config files in the following order (later files override earlier ones):
+`wa` loads and merges config files in the following order (later files override
+earlier ones):
 
 1. `~/.config/wasm-pkg-runner/config.toml` (global)
 2. `<git root>/wasm-pkg-runner.toml` (repository)
@@ -85,21 +88,21 @@ If no config file is found, `wa` runs without WASI options.
 ### Example (`wasm-pkg-runner.toml`)
 
 ```toml
-[packages.auth]
-reference = "ghcr.io/a-skua/gcloud/auth:0.2.0"
+[packages.example]
+reference = "ghcr.io/a-skua/example-cli:2026.3.14"
 
-[packages.auth.run]
+[packages.example.run]
 wasi = ["http", "inherit-env"]
 dirs = ["~/.config/gcloud"]
 
-[packages.auth.serve]
-wasi = ["http", "inherit-network"]
+[packages.example.serve]
+wasi = ["cli", "inherit-network"]
 ```
 
-With this config, `wa run auth:0.2.0` executes:
+With this config, `wa run example` executes:
 
 ```bash
-wasmtime run -S http -S inherit-env --dir ~/.config/gcloud ~/.local/wasm-pkg/ghcr.io/a-skua/gcloud/auth/0.2.0.wasm
+wasmtime run -S http -S inherit-env --dir ~/.config/gcloud ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/example-cli/2026.3.14.wasm
 ```
 
 ## License

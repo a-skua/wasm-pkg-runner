@@ -1,6 +1,6 @@
 {
   "name": "@a-skua/wasm-pkg-runner",
-  "version": "0.1.0",
+  "version": "2026.3.16",
   "exports": "./main.ts",
   "tasks": {
     "wa": "deno run -A main.ts"
