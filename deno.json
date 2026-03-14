@@ -1,0 +1,11 @@
+{
+  "name": "@a-skua/wasm-pkg-runner",
+  "version": "0.1.0",
+  "exports": "./main.ts",
+  "tasks": {
+    "wa": "deno run -A main.ts"
+  },
+  "imports": {
+    "@std/toml": "jsr:@std/toml@^1.0.11"
+  }
+}

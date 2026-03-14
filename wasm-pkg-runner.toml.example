@@ -1,0 +1,9 @@
+[packages.example]
+reference = "ghcr.io/a-skua/example-cli:2026.3.14"
+
+[packages.example.run]
+wasi = ["http", "inherit-env"]
+dirs = ["~/.config/gcloud"]
+
+[packages.example.serve]
+wasi = ["cli", "inherit-network"]
