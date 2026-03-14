@@ -1,3 +1,27 @@
+/**
+ * CLI entrypoint for wasm-pkg-runner.
+ *
+ * Provides subcommands to pull, run, and serve WebAssembly components
+ * using OCI registries and wasmtime.
+ *
+ * @example Pull a wasm package
+ * ```sh
+ * wa pull ghcr.io/a-skua/example:0.1.0
+ * ```
+ *
+ * @example Run a wasm component
+ * ```sh
+ * wa run example
+ * ```
+ *
+ * @example Serve a wasm component
+ * ```sh
+ * wa serve example
+ * ```
+ *
+ * @module
+ */
+
 import { Command } from "@cliffy/command";
 import { isErr, type Ok, Result } from "@askua/core/result";
 import {
