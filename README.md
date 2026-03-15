@@ -14,7 +14,7 @@ components with preconfigured WASI options.
 
 ## Install
 
-From JSR:
+From [JSR](https://jsr.io/@askua/wasm-pkg-runner):
 
 ```bash
 deno install -g -A -n wa jsr:@askua/wasm-pkg-runner
