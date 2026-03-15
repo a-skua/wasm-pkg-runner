@@ -1,11 +1,11 @@
 import type { PackageConfig, WasiConfig } from "./config.ts";
 import type { Brand } from "@askua/core/brand";
 import { err, ok, Result } from "@askua/core/result";
-import { pull, wasmPath, type WasmPathName } from "./pull.ts";
+import { pull, type WasmFilePathName, wasmPath } from "./pull.ts";
 
 async function resolveWasmPath(
   pkg: PackageConfig,
-): Promise<Result<WasmPathName, Error>> {
+): Promise<Result<WasmFilePathName, Error>> {
   if (pkg.path) {
     return ok(pkg.path);
   }

@@ -1,7 +1,7 @@
 import { parse } from "@std/toml";
 import type { Brand } from "@askua/core/brand";
 import { stringify } from "@std/toml";
-import type { WasmPathName, WasmReferenceName } from "./pull.ts";
+import type { WasmFilePathName, WasmReferenceName } from "./pull.ts";
 import { isSome, none, type Option, some } from "@askua/core/option";
 import { err, ok, type Result, type ResultInstance } from "@askua/core/result";
 
@@ -14,7 +14,7 @@ export interface WasiConfig {
 
 export interface PackageConfig {
   reference?: WasmReferenceName;
-  path?: WasmPathName;
+  path?: WasmFilePathName;
   run?: WasiConfig;
   serve?: WasiConfig;
 }

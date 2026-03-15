@@ -3,18 +3,18 @@ import type { Brand } from "@askua/core/brand";
 
 const WASM_PKG_DIR = `${Deno.env.get("HOME")}/.cache/wasm-pkg-runner`;
 
-export type WasmPathName = Brand<string, "WasmPathName">;
+export type WasmFilePathName = Brand<string, "WasmFilePathName">;
 export type WasmReferenceName = Brand<string, "WasmReferenceName">;
 
-export function wasmPath(reference: WasmReferenceName): WasmPathName {
+export function wasmPath(reference: WasmReferenceName): WasmFilePathName {
   // ghcr.io/a-skua/gcloud/auth:0.2.0 → ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/gcloud/auth/0.2.0.wasm
-  const path = reference.replace(":", "/");
-  return `${WASM_PKG_DIR}/${path}.wasm` as WasmPathName;
+  const path = reference.replace(":", "-");
+  return `${WASM_PKG_DIR}/${path}.wasm` as WasmFilePathName;
 }
 
 export async function pull(
   reference: WasmReferenceName,
-): Promise<ResultInstance<WasmPathName, Error>> {
+): Promise<ResultInstance<WasmFilePathName, Error>> {
   const output = wasmPath(reference);
   const dir = output.substring(0, output.lastIndexOf("/"));
 
