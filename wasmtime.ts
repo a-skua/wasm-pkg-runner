@@ -1,11 +1,12 @@
 import type { PackageConfig, WasiConfig } from "./config.ts";
 import type { Brand } from "@askua/core/brand";
-import { err, ok, Result } from "@askua/core/result";
+import { Option } from "@askua/core/option";
+import { err, ok, Result, type ResultInstance } from "@askua/core/result";
 import { pull, type WasmFilePathName, wasmPath } from "./pull.ts";
 
 async function resolveWasmPath(
   pkg: PackageConfig,
-): Promise<Result<WasmFilePathName, Error>> {
+): Promise<ResultInstance<WasmFilePathName, Error>> {
   if (pkg.path) {
     return ok(pkg.path);
   }
@@ -24,31 +25,37 @@ async function resolveWasmPath(
   }
 }
 
+type Subcommand = "run" | "serve";
+
+export type Arg = Brand<string, "Wasmtime::Arg">;
+
 function buildArgs(
-  subcommand: string,
-  wasmFile: string,
-  config: WasiConfig | undefined,
-  extraArgs: string[],
-): string[] {
-  const args: string[] = [subcommand];
+  subcommand: Subcommand,
+  wasmFile: WasmFilePathName,
+  config: Option<WasiConfig>,
+  extraArgs: Arg[],
+): Arg[] {
+  const args: Arg[] = [subcommand as Arg];
 
-  if (config?.wasi) {
-    for (const w of config.wasi) {
-      args.push("-S", w);
+  Option(config).tee((config) => {
+    if (config.wasi) {
+      for (const w of config.wasi) {
+        args.push("-S" as Arg, w);
+      }
     }
-  }
 
-  if (config?.dirs) {
-    for (const d of config.dirs) {
-      args.push("--dir", d);
+    if (config.dirs) {
+      for (const d of config.dirs) {
+        args.push("--dir" as Arg, d);
+      }
     }
-  }
 
-  if (config?.env) {
-    for (const key of config.env) {
-      args.push("--env", key);
+    if (config.env) {
+      for (const key of config.env) {
+        args.push("--env" as Arg, key);
+      }
     }
-  }
+  });
 
   args.push(wasmFile);
 
@@ -62,11 +69,11 @@ function buildArgs(
 export type ExitCode = Brand<number, "ExitCode">;
 
 export function exec(
-  subcommand: string,
+  subcommand: Subcommand,
   pkg: PackageConfig,
-  config: WasiConfig | undefined,
-  extraArgs: string[],
-): Promise<Result<ExitCode, Error>> {
+  config: Option<WasiConfig>,
+  extraArgs: Arg[],
+): Promise<ResultInstance<ExitCode, Error>> {
   return Result.lazy(resolveWasmPath(pkg))
     .map((wasmFile) => buildArgs(subcommand, wasmFile, config, extraArgs))
     .and(async (args) => {
@@ -77,8 +84,18 @@ export function exec(
         stdin: "inherit",
       });
 
-      const { code } = await cmd.output();
-      return ok(code as ExitCode);
+      const child = cmd.spawn();
+      const sigHandler = () => {
+        child.kill("SIGTERM");
+      };
+      Deno.addSignalListener("SIGINT", sigHandler);
+
+      try {
+        const { code } = await child.output();
+        return ok(code as ExitCode);
+      } finally {
+        Deno.removeSignalListener("SIGINT", sigHandler);
+      }
     })
     .eval();
 }

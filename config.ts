@@ -1,15 +1,20 @@
-import { parse } from "@std/toml";
+import * as TOML from "@std/toml";
 import type { Brand } from "@askua/core/brand";
 import { stringify } from "@std/toml";
 import type { WasmFilePathName, WasmReferenceName } from "./pull.ts";
-import { isSome, none, type Option, some } from "@askua/core/option";
+import { none, Option, type OptionInstance, some } from "@askua/core/option";
 import { err, ok, type Result, type ResultInstance } from "@askua/core/result";
+import type { Arg } from "./wasmtime.ts";
+
+type WasmConfigWasi = Brand<Arg, "WasmConfig.wasi">;
+type WasmConfigDir = Brand<Arg, "WasmConfig.dir">;
+type WasmConfigEnv = Brand<Arg, "WasmConfig.env">;
 
 export interface WasiConfig {
-  wasi?: string[];
-  dirs?: string[];
-  env?: string[];
-  args?: string[];
+  wasi?: WasmConfigWasi[];
+  dirs?: WasmConfigDir[];
+  env?: WasmConfigEnv[];
+  args?: Arg[];
 }
 
 export interface PackageConfig {
@@ -19,8 +24,10 @@ export interface PackageConfig {
   serve?: WasiConfig;
 }
 
+type ConfigPackageName = Brand<string, "Config.package">;
+
 export interface Config {
-  packages: Record<string, PackageConfig>;
+  packages: Record<ConfigPackageName, PackageConfig>;
 }
 
 const CONFIG_FILE_NAME = "wasm-pkg-runner.toml";
@@ -69,18 +76,23 @@ async function configCandidates(
   return candidates;
 }
 
-async function parseConfigFile(path: string): Promise<Option<Config>> {
+async function parseConfigFile(path: string): Promise<OptionInstance<Config>> {
   try {
     const text = await Deno.readTextFile(path);
-    const raw = parse(text) as unknown as Config;
-    return some({ packages: raw.packages ?? {} });
-  } catch {
+    const raw = TOML.parse(text);
+    return Option.fromNullable(raw.packages).map((packages) =>
+      ({
+        packages,
+      }) as Config
+    );
+  } catch (e) {
+    console.warn(`Failed to load config from ${path}: ${e}`);
     return none();
   }
 }
 
 function mergeConfigs(base: Config, override: Config): Config {
-  const packages = { ...base.packages };
+  const packages = { ...base.packages } as Record<string, PackageConfig>;
   for (const [name, pkg] of Object.entries(override.packages)) {
     if (packages[name]) {
       // Merge: override's fields take precedence
@@ -106,7 +118,7 @@ export function loadConfig(): Promise<ResultInstance<Config, Error>> {
 
       for (const path of candidates) {
         const parsed = await parseConfigFile(path);
-        if (isSome(parsed)) {
+        if (parsed.some) {
           config = mergeConfigs(config, parsed.value);
         }
       }
@@ -126,7 +138,7 @@ export function showConfig(): Promise<Result<void, Error>> {
       let config: Config = { packages: {} };
       for (const path of candidates) {
         const parsed = await parseConfigFile(path);
-        if (isSome(parsed)) {
+        if (parsed.some) {
           config = mergeConfigs(config, parsed.value);
           loadedFiles.push(path);
         }
@@ -153,20 +165,7 @@ export function showConfig(): Promise<Result<void, Error>> {
     })
     .eval();
 }
-
-export function editConfig(): Promise<Result<number, Error>> {
-  return globalConfigPath()
-    .lazy()
-    .and(async (path) => {
-      const dir = path.substring(0, path.lastIndexOf("/"));
-
-      await Deno.mkdir(dir, { recursive: true });
-
-      // Create file if it doesn't exist
-      try {
-        await Deno.stat(path);
-      } catch {
-        const template = `# wasm-pkg-runner configuration
+const CONFIG_TEMPLATE = `# wasm-pkg-runner configuration
 # See: https://github.com/a-skua/wasm-pkg-runner
 
 # OCI registry reference
@@ -185,7 +184,20 @@ export function editConfig(): Promise<Result<number, Error>> {
 # [packages.<name>.serve]
 # wasi = ["cli", "inherit-network"]
 `;
-        await Deno.writeTextFile(path, template);
+
+export function editConfig(): Promise<Result<number, Error>> {
+  return globalConfigPath()
+    .lazy()
+    .and(async (path) => {
+      const dir = path.substring(0, path.lastIndexOf("/"));
+
+      await Deno.mkdir(dir, { recursive: true });
+
+      // Create file if it doesn't exist
+      try {
+        await Deno.stat(path);
+      } catch {
+        await Deno.writeTextFile(path, CONFIG_TEMPLATE);
       }
 
       const editor = Deno.env.get("EDITOR") ?? "vi";
@@ -206,23 +218,32 @@ export type WasmPackageName = Brand<string, "WasmPackageName">;
 
 export function resolvePackage(
   config: Config,
-  name: WasmPackageName | WasmReferenceName,
-): { pkg: PackageConfig } {
+  name: WasmPackageName | WasmReferenceName | WasmFilePathName,
+): PackageConfig {
   // name can be "auth:0.2.0" or full "ghcr.io/a-skua/gcloud/auth:0.2.0"
-  const pkg = config.packages[name] ?? config.packages[name.split(":")[0]];
-  if (pkg) {
-    return { pkg };
-  }
-
-  // Try matching by full reference
-  for (const [, p] of Object.entries(config.packages)) {
-    if (p.reference === name) {
-      return { pkg: p };
-    }
-  }
-
-  // Not in config — treat name as a full reference
-  return {
-    pkg: { reference: name as WasmReferenceName },
-  };
+  return Option.fromNullable(
+    config.packages[name as string as ConfigPackageName],
+  )
+    .or(() =>
+      Option.fromNullable(
+        config.packages[name.split(":")[0] as ConfigPackageName],
+      )
+    )
+    .or(() => {
+      // Try matching by full reference
+      for (const [, p] of Object.entries(config.packages)) {
+        if (p.reference === name) {
+          return some(p);
+        }
+      }
+      return none();
+    }).or(() => {
+      // Try matching by path
+      for (const [, p] of Object.entries(config.packages)) {
+        if (p.path === name) {
+          return some(p);
+        }
+      }
+      return none();
+    }).unwrap(() => ({}));
 }

@@ -1,9 +1,10 @@
 import { err, ok, type ResultInstance } from "@askua/core/result";
 import type { Brand } from "@askua/core/brand";
+import type { Arg } from "./wasmtime.ts";
 
 const WASM_PKG_DIR = `${Deno.env.get("HOME")}/.cache/wasm-pkg-runner`;
 
-export type WasmFilePathName = Brand<string, "WasmFilePathName">;
+export type WasmFilePathName = Brand<Arg, "WasmFilePathName">;
 export type WasmReferenceName = Brand<string, "WasmReferenceName">;
 
 export function wasmPath(reference: WasmReferenceName): WasmFilePathName {

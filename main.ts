@@ -90,7 +90,6 @@ import {
   loadConfig,
   resolvePackage,
   showConfig,
-  type WasmPackageName,
 } from "./config.ts";
 import { pull, type WasmReferenceName } from "./pull.ts";
 import { run } from "./run.ts";
@@ -133,13 +132,8 @@ if (import.meta.main) {
     .useRawArgs()
     .action(async (_options, name, ...args) => {
       const result = await Result.lazy(loadConfig())
-        .and((config) => {
-          const { pkg } = resolvePackage(
-            config,
-            name as WasmReferenceName | WasmPackageName,
-          );
-          return run(pkg, args);
-        })
+        .map((cfg) => resolvePackage(cfg, name as never))
+        .and((pkg) => run(pkg, args as never))
         .eval();
       exitIfErr(result);
       Deno.exit(result.value);
@@ -151,13 +145,8 @@ if (import.meta.main) {
     .useRawArgs()
     .action(async (_options, name, ...args) => {
       const result = await Result.lazy(loadConfig())
-        .and((config) => {
-          const { pkg } = resolvePackage(
-            config,
-            name as WasmReferenceName | WasmPackageName,
-          );
-          return serve(pkg, args);
-        })
+        .map((cfg) => resolvePackage(cfg, name as never))
+        .and((pkg) => serve(pkg, args as never))
         .eval();
       exitIfErr(result);
       Deno.exit(result.value);

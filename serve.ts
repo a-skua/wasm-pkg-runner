@@ -1,10 +1,11 @@
 import type { PackageConfig } from "./config.ts";
-import type { Result } from "@askua/core/result";
-import { exec, type ExitCode } from "./wasmtime.ts";
+import type { ResultInstance } from "@askua/core/result";
+import { Option } from "@askua/core/option";
+import { type Arg, exec, type ExitCode } from "./wasmtime.ts";
 
 export async function serve(
   pkg: PackageConfig,
-  extraArgs: string[],
-): Promise<Result<ExitCode, Error>> {
-  return await exec("serve", pkg, pkg.serve, extraArgs);
+  extraArgs: Arg[],
+): Promise<ResultInstance<ExitCode, Error>> {
+  return await exec("serve", pkg, Option.fromNullable(pkg.serve), extraArgs);
 }
