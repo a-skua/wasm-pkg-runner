@@ -1,5 +1,8 @@
 # wasm-pkg-runner
 
+[![Test](https://github.com/a-skua/wasm-pkg-runner/actions/workflows/test.yaml/badge.svg)](https://github.com/a-skua/wasm-pkg-runner/actions/workflows/test.yaml)
+[![Publish](https://github.com/a-skua/wasm-pkg-runner/actions/workflows/publish.yaml/badge.svg)](https://github.com/a-skua/wasm-pkg-runner/actions/workflows/publish.yaml)
+
 A CLI tool to pull and run WebAssembly components from OCI registries.
 
 Wraps [wkg](https://github.com/bytecodealliance/wasm-pkg-tools) and
