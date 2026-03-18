@@ -169,6 +169,12 @@ if (import.meta.main) {
     .name(denoJson.name)
     .version(denoJson.version)
     .description("Wasm package runner")
+    .env(
+      "WASM_PKG_RUNNER_CONFIG=<path:string>",
+      "Override global config file path",
+    )
+    .env("EDITOR=<command:string>", "Editor for config --edit (default: vi)")
+    .env("HOME=<path:string>", "Home directory for default config path")
     .action(function () {
       this.showHelp();
     })
