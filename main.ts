@@ -84,7 +84,7 @@
  */
 
 import { Command } from "@cliffy/command";
-import { isErr, type Ok, Result } from "@askua/core/result";
+import { type Ok, Result } from "@askua/core/result";
 import {
   editConfig,
   loadConfig,
@@ -99,7 +99,7 @@ import denoJson from "./deno.json" with { type: "json" };
 function exitIfErr<T>(
   result: Result<T, Error>,
 ): asserts result is Ok<T> {
-  if (isErr(result)) {
+  if (!result.ok) {
     console.error(result.error.message);
     Deno.exit(1);
   }
