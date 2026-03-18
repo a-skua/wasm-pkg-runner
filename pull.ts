@@ -1,37 +1,46 @@
 import { err, ok, type ResultInstance } from "@askua/core/result";
 import type { Brand } from "@askua/core/brand";
 import type { Arg } from "./wasmtime.ts";
-
-const WASM_PKG_DIR = `${Deno.env.get("HOME")}/.cache/wasm-pkg-runner`;
+import { cacheDir, home } from "./env.ts";
 
 export type WasmFilePathName = Brand<Arg, "WasmFilePathName">;
 export type WasmReferenceName = Brand<string, "WasmReferenceName">;
 
 export function wasmPath(reference: WasmReferenceName): WasmFilePathName {
-  // ghcr.io/a-skua/gcloud/auth:0.2.0 → ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/gcloud/auth/0.2.0.wasm
+  // ghcr.io/a-skua/gcloud/auth:0.2.0 → ~/.cache/wasm-pkg-runner/ghcr.io/a-skua/gcloud/auth-0.2.0.wasm
   const path = reference.replace(":", "-");
-  return `${WASM_PKG_DIR}/${path}.wasm` as WasmFilePathName;
+  return cacheDir()
+    .map((dir) => `${dir}/${path}.wasm` as WasmFilePathName)
+    .or(() =>
+      home().map((dir) =>
+        `${dir}/.cache/wasm-pkg-runner/${path}.wasm` as WasmFilePathName
+      )
+    ).unwrap(() => {
+      throw new Error("Could not determine cache directory");
+    });
 }
 
-export async function pull(
+export function pull(
   reference: WasmReferenceName,
 ): Promise<ResultInstance<WasmFilePathName, Error>> {
-  const output = wasmPath(reference);
-  const dir = output.substring(0, output.lastIndexOf("/"));
+  return ok(wasmPath(reference)).lazy()
+    .tee(async (path) => {
+      const dir = path.substring(0, path.lastIndexOf("/"));
+      await Deno.mkdir(dir, { recursive: true });
+    })
+    .and(async (output) => {
+      const cmd = new Deno.Command("wkg", {
+        args: ["oci", "pull", reference, "-o", output],
+        stdout: "inherit",
+        stderr: "inherit",
+      });
 
-  await Deno.mkdir(dir, { recursive: true });
+      const { success } = await cmd.output();
+      if (!success) {
+        return err(new Error(`Failed to pull ${reference}`));
+      }
 
-  const cmd = new Deno.Command("wkg", {
-    args: ["oci", "pull", reference, "-o", output],
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-
-  const { success } = await cmd.output();
-  if (!success) {
-    return err(new Error(`Failed to pull ${reference}`));
-  }
-
-  console.log(`Pulled ${reference} → ${output}`);
-  return ok(output);
+      console.log(`Pulled ${reference} → ${output}`);
+      return ok(output);
+    }).eval();
 }
