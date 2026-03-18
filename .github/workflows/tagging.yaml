@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.value }}
+      pushed: ${{ steps.push.outputs.pushed }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - run: echo "value=$(jq -r '.version' deno.json)" >> "$GITHUB_OUTPUT"
@@ -19,6 +22,17 @@ jobs:
       - run: git tag "$TAG"
         env:
           TAG: ${{ steps.version.outputs.value }}
-      - run: git push origin "$TAG" || true
+      - run: git push origin "$TAG" && echo "pushed=true" >> "$GITHUB_OUTPUT" || echo "pushed=false" >> "$GITHUB_OUTPUT"
+        id: push
         env:
           TAG: ${{ steps.version.outputs.value }}
+
+  publish:
+    needs: tagging
+    if: needs.tagging.outputs.pushed == 'true'
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/publish.yaml
+    with:
+      tag: ${{ needs.tagging.outputs.tag }}
