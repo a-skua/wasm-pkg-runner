@@ -84,9 +84,11 @@
  */
 
 import { Command } from "@cliffy/command";
-import { type Ok, Result } from "@askua/core/result";
+import type { Ok, Result } from "@askua/core/result";
 import {
   editConfig,
+  type Editor,
+  globalConfigPath,
   loadConfig,
   resolvePackage,
   showConfig,
@@ -95,6 +97,8 @@ import { pull, type WasmReferenceName } from "./pull.ts";
 import { run } from "./run.ts";
 import { serve } from "./serve.ts";
 import denoJson from "./deno.json" with { type: "json" };
+import type { ExitCode } from "./types.ts";
+import * as env from "./env.ts";
 
 function exitIfErr<T>(
   result: Result<T, Error>,
@@ -105,18 +109,27 @@ function exitIfErr<T>(
   }
 }
 
+function exit(r: Result<ExitCode, Error>): r is never {
+  exitIfErr(r);
+  Deno.exit(r.value);
+}
+
 if (import.meta.main) {
   const configCommand = new Command()
     .description("Show merged config")
-    .option("--edit", "Edit global config")
+    .option("--edit", "Edit global config (use $EDITOR, default: vi)")
     .action(async ({ edit }) => {
-      if (edit) {
-        const result = await editConfig();
-        exitIfErr(result);
-        Deno.exit(result.value);
-      } else {
-        exitIfErr(await showConfig());
-      }
+      const e = { home: env.home(), configPath: env.configPath() };
+      const result = await globalConfigPath(e).lazy()
+        .and((path) =>
+          edit
+            ? editConfig(
+              env.editor().unwrap(() => "vi" as const) as Editor,
+              path,
+            )
+            : showConfig(path)
+        ).eval();
+      exit(result);
     });
 
   const pullCommand = new Command()
@@ -131,12 +144,12 @@ if (import.meta.main) {
     .arguments("<name:string> [...args:string]")
     .useRawArgs()
     .action(async (_options, name, ...args) => {
-      const result = await Result.lazy(loadConfig())
+      const e = { home: env.home(), configPath: env.configPath() };
+      const result = await globalConfigPath(e).lazy()
+        .and((path) => loadConfig(path))
         .map((cfg) => resolvePackage(cfg, name as never))
-        .and((pkg) => run(pkg, args as never))
-        .eval();
-      exitIfErr(result);
-      Deno.exit(result.value);
+        .and((pkg) => run(pkg, args as never)).eval();
+      exit(result);
     });
 
   const serveCommand = new Command()
@@ -144,12 +157,12 @@ if (import.meta.main) {
     .arguments("<name:string> [...args:string]")
     .useRawArgs()
     .action(async (_options, name, ...args) => {
-      const result = await Result.lazy(loadConfig())
+      const e = { home: env.home(), configPath: env.configPath() };
+      const result = await globalConfigPath(e).lazy()
+        .and((path) => loadConfig(path))
         .map((cfg) => resolvePackage(cfg, name as never))
-        .and((pkg) => serve(pkg, args as never))
-        .eval();
-      exitIfErr(result);
-      Deno.exit(result.value);
+        .and((pkg) => serve(pkg, args as never)).eval();
+      exit(result);
     });
 
   const main = new Command()

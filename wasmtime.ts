@@ -3,6 +3,7 @@ import type { Brand } from "@askua/core/brand";
 import { Option } from "@askua/core/option";
 import { err, ok, Result, type ResultInstance } from "@askua/core/result";
 import { pull, type WasmFilePathName, wasmPath } from "./pull.ts";
+import type { ExitCode } from "./types.ts";
 
 async function resolveWasmPath(
   pkg: PackageConfig,
@@ -65,8 +66,6 @@ function buildArgs(
 
   return args;
 }
-
-export type ExitCode = Brand<number, "ExitCode">;
 
 export function exec(
   subcommand: Subcommand,
