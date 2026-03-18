@@ -5,6 +5,11 @@ on:
   push:
     tags:
       - "*"
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 
 permissions: {}
 
@@ -16,6 +21,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
       - uses: denoland/setup-deno@e95548e56dfa95d4e1a28d6f422fafe75c4c26fb # v2.0.3
       - run: deno check main.ts
       - run: deno publish
@@ -26,6 +33,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: gh release create "$GITHUB_REF_NAME" --generate-notes --repo "$GITHUB_REPOSITORY"
+      - run: gh release create "$TAG" --generate-notes --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
