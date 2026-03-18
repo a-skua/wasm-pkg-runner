@@ -26,3 +26,14 @@ export function configPath(): OptionInstance<
 export function editor(): OptionInstance<Env<"EDITOR", Editor>> {
   return Option.fromNullable(Deno.env.get("EDITOR") as Env<"EDITOR", Editor>);
 }
+
+export function cacheDir(): OptionInstance<
+  Env<"WASM_PKG_RUNNER_CACHE_DIR", Path<"cacheDir">>
+> {
+  return Option.fromNullable(
+    Deno.env.get("WASM_PKG_RUNNER_CACHE_DIR") as Env<
+      "WASM_PKG_RUNNER_CACHE_DIR",
+      Path<"cacheDir">
+    >,
+  );
+}
