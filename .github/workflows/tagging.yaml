@@ -9,7 +9,7 @@ permissions: {}
 
 jobs:
   tagging:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write
     outputs:
