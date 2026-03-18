@@ -117,7 +117,16 @@ function exit(r: Result<ExitCode, Error>): r is never {
 if (import.meta.main) {
   const configCommand = new Command()
     .description("Show merged config")
-    .option("--edit", "Edit global config (use $EDITOR, default: vi)")
+    .option("--edit", "Edit global config")
+    .env(
+      "WASM_PKG_RUNNER_CONFIG=<path:string>",
+      "Override global config file path",
+    )
+    .env(
+      "HOME=<path:string>",
+      "Used to resolve default config path: $HOME/.config/wasm-pkg-runner/config.toml",
+    )
+    .env("EDITOR=<command:string>", "Editor for config --edit (default: vi)")
     .action(async ({ edit }) => {
       const e = { home: env.home(), configPath: env.configPath() };
       const result = await globalConfigPath(e).lazy()
@@ -169,12 +178,6 @@ if (import.meta.main) {
     .name(denoJson.name)
     .version(denoJson.version)
     .description("Wasm package runner")
-    .env(
-      "WASM_PKG_RUNNER_CONFIG=<path:string>",
-      "Override global config file path",
-    )
-    .env("EDITOR=<command:string>", "Editor for config --edit (default: vi)")
-    .env("HOME=<path:string>", "Home directory for default config path")
     .action(function () {
       this.showHelp();
     })
