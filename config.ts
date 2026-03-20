@@ -82,12 +82,18 @@ export function globalConfigPath(env: {
 }
 
 async function configCandidates(
-  globalPath: string,
-): Promise<string[]> {
-  const candidates: string[] = [];
+  globalConfig: Path<"globalConfig">,
+): Promise<
+  (Path<"globalConfig"> | Path<"gitRootConfig"> | Path<"currentDirConfig">)[]
+> {
+  const candidates: (
+    | Path<"globalConfig">
+    | Path<"gitRootConfig">
+    | Path<"currentDirConfig">
+  )[] = [];
 
   // 3. $HOME/.config/wasm-pkg-runner/config.toml (lowest priority, loaded first)
-  candidates.push(globalPath);
+  candidates.push(globalConfig);
 
   // 2. git repository root
   try {
@@ -99,9 +105,11 @@ async function configCandidates(
     const { success, stdout } = await cmd.output();
     if (success) {
       const gitRoot = new TextDecoder().decode(stdout).trim();
-      const gitPath = `${gitRoot}/${CONFIG_FILE_NAME}`;
-      if (!candidates.includes(gitPath)) {
-        candidates.push(gitPath);
+      const gitRootConfig = `${gitRoot}/${CONFIG_FILE_NAME}` as Path<
+        "gitRootConfig"
+      >;
+      if (!candidates.includes(gitRootConfig)) {
+        candidates.push(gitRootConfig);
       }
     }
   } catch {
@@ -109,7 +117,9 @@ async function configCandidates(
   }
 
   // 1. current directory (highest priority, loaded last)
-  const cwdPath = `${Deno.cwd()}/${CONFIG_FILE_NAME}`;
+  const cwdPath = `${Deno.cwd()}/${CONFIG_FILE_NAME}` as Path<
+    "currentDirConfig"
+  >;
   if (!candidates.includes(cwdPath)) {
     candidates.push(cwdPath);
   }
@@ -117,17 +127,19 @@ async function configCandidates(
   return candidates;
 }
 
-async function parseConfigFile(path: string): Promise<OptionInstance<Config>> {
+async function parseConfigFile(
+  config: Path<string>,
+): Promise<OptionInstance<Config>> {
   try {
-    const text = await Deno.readTextFile(path);
+    const text = await Deno.readTextFile(config);
     const raw = TOML.parse(text);
     return Option.fromNullable(raw.packages).map((packages) =>
       ({
         packages,
       }) as Config
     );
-  } catch (e) {
-    console.warn(`Failed to load config from ${path}: ${e}`);
+  } catch {
+    // Ignore errors (file not found, parse error, etc.) and treat as no config
     return none();
   }
 }
