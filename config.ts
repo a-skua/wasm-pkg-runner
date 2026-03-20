@@ -20,12 +20,12 @@ const CONFIG_TEMPLATE = `# wasm-pkg-runner configuration
 # path = "/home/<username>/path/to/component.wasm"
 #
 # [packages.<name>.run]
-# wasi = ["http", "inherit-env"]
+# wasi = ["http"]
 # dirs = ["/home/<username>/.config/gcloud"]
 # env = ["GOOGLE_APPLICATION_CREDENTIALS"]
 #
 # [packages.<name>.serve]
-# wasi = ["cli", "inherit-network"]
+# wasi = ["cli"]
 `;
 
 type WasmConfigWasi = Brand<Arg, "WasmConfig.wasi">;
@@ -226,6 +226,19 @@ export async function editConfig(
 
   const { code } = await cmd.output();
   return ok(code as ExitCode);
+}
+
+export async function initConfig(): Promise<Result<ExitCode, Error>> {
+  const path = `${Deno.cwd()}/${CONFIG_FILE_NAME}`;
+  try {
+    await Deno.stat(path);
+    return err(new Error(`${path} already exists`));
+  } catch {
+    // File does not exist, create it
+  }
+  await Deno.writeTextFile(path, CONFIG_TEMPLATE);
+  console.log(`Created ${path}`);
+  return ok(0 as ExitCode);
 }
 
 export type WasmPackageName = Brand<string, "WasmPackageName">;

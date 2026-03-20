@@ -89,6 +89,7 @@ import {
   editConfig,
   type Editor,
   globalConfigPath,
+  initConfig,
   loadConfig,
   resolvePackage,
   showConfig,
@@ -174,6 +175,12 @@ if (import.meta.main) {
       exit(result);
     });
 
+  const initCommand = new Command()
+    .description("Create wasm-pkg-runner.toml in current directory")
+    .action(async () => {
+      exit(await initConfig());
+    });
+
   const main = new Command()
     .name(denoJson.name)
     .version(denoJson.version)
@@ -181,6 +188,7 @@ if (import.meta.main) {
     .action(function () {
       this.showHelp();
     })
+    .command("init", initCommand)
     .command("pull", pullCommand)
     .command("run", runCommand)
     .command("serve", serveCommand)
