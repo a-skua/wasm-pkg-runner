@@ -16,7 +16,8 @@
       ".claude/",
       ".github/",
       "deno.lock",
-      "wasm-pkg-runner.toml.example"
+      "wasm-pkg-runner.toml.example",
+      "*_test.ts"
     ]
   }
 }
