@@ -5,7 +5,7 @@ import type { WasmFilePathName, WasmReferenceName } from "./pull.ts";
 import { none, Option, type OptionInstance, some } from "@askua/core/option";
 import { err, ok, type Result, type ResultInstance } from "@askua/core/result";
 import type { Arg } from "./wasmtime.ts";
-import type { Command, ExitCode, Path } from "./types.ts";
+import { type Command, ExitCode, type Path } from "./types.ts";
 import type { Env } from "./env.ts";
 
 const CONFIG_TEMPLATE = `# wasm-pkg-runner configuration
@@ -187,7 +187,7 @@ export async function showConfig(
     for (const path of candidates) {
       console.log(`  - ${path}`);
     }
-    return ok(0 as ExitCode);
+    return ok(ExitCode.Success);
   }
 
   console.log("Loaded config files (in priority order):");
@@ -198,7 +198,7 @@ export async function showConfig(
   console.log(
     stringify(config as unknown as Record<string, unknown>).trim(),
   );
-  return ok(0 as ExitCode);
+  return ok(ExitCode.Success);
 }
 
 export type Editor = Brand<Command, "Editor">;
@@ -238,7 +238,7 @@ export async function initConfig(): Promise<Result<ExitCode, Error>> {
   }
   await Deno.writeTextFile(path, CONFIG_TEMPLATE);
   console.log(`Created ${path}`);
-  return ok(0 as ExitCode);
+  return ok(ExitCode.Success);
 }
 
 export type WasmPackageName = Brand<string, "WasmPackageName">;
